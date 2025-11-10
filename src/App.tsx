@@ -3,9 +3,10 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
-import ProtectedRoute from './router/ProtectedRoute'; // <-- Import ProtectedRoute
+import ProtectedRoute from './router/ProtectedRoute';
+import TeacherDashboardPage from './pages/teacher/TeacherDashboardPage'; // <-- Import the new page
 
-const TeacherDashboard = () => <h1 className="text-3xl">Teacher Dashboard</h1>;
+// You can keep this or create a new student dashboard page later
 const StudentDashboard = () => <h1 className="text-3xl">Student Dashboard</h1>;
 
 function App() {
@@ -20,7 +21,8 @@ function App() {
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+          {/* Replace the placeholder with the actual component */}
+          <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} /> 
           <Route path="/student/dashboard" element={<StudentDashboard />} />
         </Route>
       </Routes>
