@@ -4,10 +4,9 @@ import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import ProfilePage from './pages/ProfilePage';
 import ProtectedRoute from './router/ProtectedRoute';
-import TeacherDashboardPage from './pages/teacher/TeacherDashboardPage'; // <-- Import the new page
+import TeacherDashboardPage from './pages/teacher/TeacherDashboardPage'; 
+import StudentDashboardPage from './pages/student/StudentDashboardPage';
 
-// You can keep this or create a new student dashboard page later
-const StudentDashboard = () => <h1 className="text-3xl">Student Dashboard</h1>;
 
 function App() {
   return (
@@ -23,7 +22,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           {/* Replace the placeholder with the actual component */}
           <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} /> 
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
+          <Route path="/student/dashboard" element={<StudentDashboardPage />} /> 
         </Route>
       </Routes>
     </Router>
