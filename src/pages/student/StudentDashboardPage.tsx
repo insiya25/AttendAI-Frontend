@@ -34,26 +34,36 @@ interface StudentDashboardData {
 }
 // ---
 
-const StudentDashboardPage = () => {
-    const [dashboardData, setDashboardData] = useState<StudentDashboardData | null>(null);
+interface DashboardProps {
+    studentRollNumber?: string; // Optional: provided when a teacher is viewing
+}
+
+const StudentDashboardPage = ({ studentRollNumber }: DashboardProps) => {
+    const [dashboardData, setDashboardData] = useState<any>(null); // Using 'any' for simplicity, can be typed
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
+        // NEW: Determine which API endpoint to call
+        const endpoint = studentRollNumber
+            ? `/teacher/view-student/${studentRollNumber}/` // Teacher's view
+            : '/student/dashboard/'; // Student's own view
+
         const fetchDashboardData = async () => {
             try {
                 setLoading(true);
-                const response = await apiClient.get('/student/dashboard/');
+                const response = await apiClient.get(endpoint);
                 setDashboardData(response.data);
             } catch (err) {
-                setError('Failed to fetch dashboard data. Please ensure you are logged in as a student.');
+                setError('Failed to fetch dashboard data.');
             } finally {
                 setLoading(false);
             }
         };
 
         fetchDashboardData();
-    }, []);
+    }, [studentRollNumber]); // Re-fetch if the roll number changes
+
 
     if (loading) return <div className="p-8 text-center text-lg">Loading Dashboard...</div>;
     if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
@@ -64,8 +74,10 @@ const StudentDashboardPage = () => {
     return (
         <div className="min-h-screen bg-gray-100 p-4 sm:p-6">
             <div className="max-w-7xl mx-auto">
-                <h1 className="text-3xl font-bold text-gray-900 mb-6">Welcome, {full_name}</h1>
-
+                <h1 className="text-3xl font-bold text-gray-900 mb-6">
+                    {/* NEW: Conditional title */}
+                    {studentRollNumber ? `Dashboard for ${full_name}` : `Welcome, ${full_name}`}
+                </h1>
                 {/* KPI Cards Section */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                     <StatCard title="Overall Attendance" value={`${overall_stats.overall_percentage}%`} icon={ClockIcon} />

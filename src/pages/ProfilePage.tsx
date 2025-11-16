@@ -1,185 +1,180 @@
 // src/pages/ProfilePage.tsx
-import React, { useEffect, useState } from 'react';
-import useAuthStore from '../store/authStore';
+import React, { useState, useEffect } from 'react';
 import apiClient from '../api/axios';
-import Select from 'react-select'; // Import react-select
+import useAuthStore from '../store/authStore';
+import SkillAssessmentModal from '../components/student/SkillAssessmentModal';
+import PerformanceChart from '../components/student/PerformanceChart';
+import { FaGithub, FaGlobe } from 'react-icons/fa'; // Simplified icons for this example
 
-// Define types for clarity
-interface Subject {
-    id: number;
-    name: string;
-}
+import { PencilSquareIcon } from '@heroicons/react/24/outline';
+import EditProfileDetailsModal from '../components/student/EditProfileDetailsModal';
+import EditSkillsModal from '../components/student/EditSkillsModal';
 
-interface SelectOption {
-    value: number;
-    label: string;
+import EditProjectsModal from '../components/student/EditProjectsModal';
+import EditPerformanceModal from '../components/student/EditPerformanceModal';
+
+import { useNavigate } from 'react-router-dom';
+
+// --- Type Definitions ---
+interface Skill { id: number; skill_name: string; verified: boolean; }
+interface Project { id: number; project_name: string; semester: number; description: string; }
+interface PerformanceRecord { semester: number; cgpi: number; }
+interface ProfileData {
+    full_name: string;
+    photo: string | null;
+    email: string;
+    phone_number: string;
+    class_name: string;
+    skills: Skill[];
+    projects: Project[];
+    performance_records: PerformanceRecord[];
 }
 
 const ProfilePage = () => {
-    const { user } = useAuthStore();
-    const [profile, setProfile] = useState<any>(null);
-    const [allSubjects, setAllSubjects] = useState<SelectOption[]>([]);
-    const [selectedSubjects, setSelectedSubjects] = useState<SelectOption[]>([]);
-    const [photoFile, setPhotoFile] = useState<File | null>(null);
-    
-    // State for UI feedback
-    const [loading, setLoading] = useState(true);
-    const [isUpdating, setIsUpdating] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const [profile, setProfile] = useState<ProfileData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
+    const navigate = useNavigate(); 
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [isSkillsModalOpen, setIsSkillsModalOpen] = useState(false);
+    const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
+    const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
+
+     const fetchProfile = async () => {
+        // No isLoading(true) here to allow for silent refresh
+        try {
+            const response = await apiClient.get('/profile/');
+            setProfile(response.data);
+        } catch (error) {
+            console.error("Failed to fetch profile", error);
+        } finally {
+            setIsLoading(false); // Only set loading false on initial fetch
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                // Fetch both profile and subjects in parallel
-                const [profileResponse, subjectsResponse] = await Promise.all([
-                    apiClient.get('/profile/'),
-                    apiClient.get('/subjects/')
-                ]);
-
-                // Set profile data
-                setProfile(profileResponse.data);
-
-                // Format subjects for react-select
-                const subjectOptions = subjectsResponse.data.map((subject: Subject) => ({
-                    value: subject.id,
-                    label: subject.name,
-                }));
-                setAllSubjects(subjectOptions);
-
-                // Set the user's current subjects as the default selected options
-                const userSubjectIds = new Set(profileResponse.data.subjects.map((s: Subject) => s.id));
-                setSelectedSubjects(subjectOptions.filter((opt: SelectOption) => userSubjectIds.has(opt.value)));
-
-            } catch (err) {
-                setError('Failed to fetch initial data.');
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
+        fetchProfile();
     }, []);
 
-    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setPhotoFile(e.target.files[0]);
-        }
+    useEffect(() => {
+        const fetchProfile = async () => {
+            setIsLoading(true);
+            try {
+                const response = await apiClient.get('/profile/');
+                setProfile(response.data);
+            } catch (error) {
+                console.error("Failed to fetch profile", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchProfile();
+    }, []);
+
+    const openModal = (skill: Skill) => setSelectedSkill(skill);
+    const closeModal = () => setSelectedSkill(null);
+
+     const startAssessment = (skill: Skill) => {
+        closeModal();
+        // NEW: Navigate to the assessment page with skill details in the URL
+        navigate(`/assessment/${encodeURIComponent(skill.skill_name)}/${skill.id}`);
     };
 
-    const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setError('');
-        setSuccess('');
-        setIsUpdating(true);
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-screen"><div className="animate-spin rounded-full h-16 w-16 border-t-4 border-white"></div></div>;
+    }
 
-        // We MUST use FormData because we are sending a file
-        const formData = new FormData();
-        
-        // Get form data directly
-        const formElements = e.currentTarget.elements;
-        formData.append('full_name', (formElements.namedItem('full_name') as HTMLInputElement).value);
-        formData.append('age', (formElements.namedItem('age') as HTMLInputElement).value);
-
-        if (user?.role === 'student') {
-            formData.append('class_name', (formElements.namedItem('class_name') as HTMLInputElement).value);
-        }
-
-        // Append selected subject IDs
-        selectedSubjects.forEach(option => {
-            formData.append('subject_ids', option.value.toString());
-        });
-
-        // Append the new photo file ONLY if one was selected
-        if (photoFile) {
-            formData.append('photo', photoFile);
-        }
-
-        try {
-            const response = await apiClient.put('/profile/', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-            setProfile(response.data); // Update profile state with the response
-            setSuccess('Profile updated successfully!');
-        } catch (err) {
-            setError('Failed to update profile. Please check your inputs.');
-            console.error(err);
-        } finally {
-            setIsUpdating(false);
-        }
-    };
-
-    if (loading) return <div className="p-8">Loading profile...</div>;
-    if (error && !profile) return <div className="p-8 text-red-500">{error}</div>;
-
+    if (!profile) {
+        return <div className="p-8 text-center">Could not load profile.</div>;
+    }
 
     return (
-        <div className="min-h-screen bg-gray-100 p-4 sm:p-8">
-            <div className="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-md">
-                <h2 className="text-3xl font-bold mb-6 text-gray-800">My Profile</h2>
-                
-                {/* Feedback Messages */}
-                {error && <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">{error}</div>}
-                {success && <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">{success}</div>}
+        <div className="p-6 max-w-6xl mx-auto text-white">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Left Column: Profile Card & Details */}
+                <div className="md:col-span-1 space-y-6">
 
-                {profile && (
-                    <form onSubmit={handleUpdate} className="space-y-4">
-                        <div className="flex items-center space-x-4">
-                            {profile.photo && <img src={profile.photo} alt="Profile" className="w-20 h-20 rounded-full object-cover" />}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Update Profile Photo</label>
-                                <input type="file" name="photo" onChange={handlePhotoChange} className="mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100"/>
-                            </div>
+                    <div className="bg-gray-800 rounded-2xl shadow-lg p-6 text-center">
+                        <button onClick={() => setIsDetailsModalOpen(true)} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+                            <PencilSquareIcon className="h-6 w-6" />
+                        </button>
+                        <img src={profile.photo || `https://ui-avatars.com/api/?name=${profile.full_name.replace(' ', '+')}`} alt="Avatar" className="rounded-full w-44 h-44 border-4 border-gray-600 mx-auto mb-4 object-cover" />
+                        <h4 className="text-2xl font-semibold">{profile.full_name}</h4>
+                        <p className="text-gray-400 text-lg">{profile.class_name}</p>
+                        {/* Add Edit Profile Button later */}
+                    </div>
+                    <div className="bg-gray-800 rounded-2xl shadow-lg p-6">
+                        <h6 className="text-lg font-semibold mb-4">Contact Information</h6>
+                        <div className="space-y-4">
+                            <p><strong>Email:</strong> {profile.email || 'N/A'}</p>
+                            <p><strong>Phone:</strong> {profile.phone_number || 'N/A'}</p>
                         </div>
+                    </div>
+                </div>
 
-                        {/* ... other form fields ... */}
-                        <div>
-                             <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                            <input type="text" name="full_name" defaultValue={profile.full_name} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Age</label>
-                            <input type="number" name="age" defaultValue={profile.age} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" />
-                        </div>
-
-                        {user?.role === 'student' && (
-                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Class Name</label>
-                                <input type="text" name="class_name" defaultValue={profile.class_name} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" />
-                            </div>
-                        )}
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                                {user?.role === 'teacher' ? 'Subjects I Teach' : 'My Enrolled Subjects'}
-                            </label>
-                            <Select
-                                isMulti
-                                name="subjects"
-                                options={allSubjects}
-                                value={selectedSubjects}
-                                onChange={(options) => setSelectedSubjects(options as SelectOption[])}
-                                className="mt-1 basic-multi-select"
-                                classNamePrefix="select"
-                            />
-                        </div>
-
-                        <div>
-                            <button
-                                type="submit"
-                                disabled={isUpdating}
-                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300"
-                            >
-                                {isUpdating ? 'Saving...' : 'Save Changes'}
+                {/* Right Column: Skills, Projects, Performance */}
+                <div className="md:col-span-2 space-y-6">
+                    <div className="bg-gray-800 rounded-2xl shadow-lg p-6">
+                        <h6 className="text-lg font-semibold mb-3">Skills</h6>
+                         <button onClick={() => setIsSkillsModalOpen(true)} className="text-gray-400 hover:text-white">
+                                <PencilSquareIcon className="h-6 w-6" />
                             </button>
-                        </div>
-                    </form>
-                )}
+                        {profile.skills.length > 0 ? (
+                            profile.skills.map(skill => (
+                                <div key={skill.id} className="flex bg-gray-900 justify-between items-center mb-2 p-2 rounded-md">
+                                    <span className="text-gray-300">{skill.skill_name}</span>
+                                    <div className="flex items-center space-x-2">
+                                        {skill.verified ? (
+                                <span className="bg-yellow-500 text-gray-900 text-xs font-bold py-1 px-3 rounded-full">
+                                    Verified
+                                </span>
+                            ) : (
+                                <button onClick={() => openModal(skill)} className="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700">
+                                    Verify
+                                </button>
+                            )}
+                                    </div>
+                                </div>
+                            ))
+                        ) : <p className="text-gray-400">No skills listed.</p>}
+                    </div>
+
+                    <div className="bg-gray-800 rounded-2xl shadow-lg p-6">
+                        <h6 className="text-lg font-semibold mb-4">Performance</h6>
+                         <button onClick={() => setIsPerformanceModalOpen(true)} className="text-gray-400 hover:text-white">
+                                <PencilSquareIcon className="h-6 w-6" />
+                            </button>
+                        {profile.performance_records.length > 0 ? (
+                            <PerformanceChart performanceData={profile.performance_records} />
+                        ) : <p className="text-gray-400">No performance data available.</p>}
+                    </div>
+                </div>
             </div>
+
+            {/* Full Width Bottom Section: Projects */}
+            <div className="bg-gray-800 rounded-2xl mt-6 shadow-lg p-6 w-full">
+                <h6 className="text-lg font-semibold mb-4">Projects Showcase</h6>
+                <button onClick={() => setIsProjectsModalOpen(true)} className="text-gray-400 hover:text-white">
+                        <PencilSquareIcon className="h-6 w-6" />
+                    </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {profile.projects.length > 0 ? (
+                        profile.projects.map(project => (
+                            <div key={project.id} className="bg-gray-900 p-4 rounded-lg">
+                                <h4 className="font-bold text-md">{project.project_name} (Sem {project.semester})</h4>
+                                <p className="text-sm text-gray-400 mt-2">{project.description}</p>
+                            </div>
+                        ))
+                    ) : <p className="text-gray-500 text-center col-span-3">No projects added.</p>}
+                </div>
+            </div>
+
+             
+             {isDetailsModalOpen && <EditProfileDetailsModal profile={profile} onClose={() => setIsDetailsModalOpen(false)} onSuccess={fetchProfile} />}
+            {isSkillsModalOpen && <EditSkillsModal skills={profile.skills} onClose={() => setIsSkillsModalOpen(false)} onSuccess={fetchProfile} />}
+            {isProjectsModalOpen && <EditProjectsModal projects={profile.projects} onClose={() => setIsProjectsModalOpen(false)} onSuccess={fetchProfile} />}
+            {isPerformanceModalOpen && <EditPerformanceModal records={profile.performance_records} onClose={() => setIsPerformanceModalOpen(false)} onSuccess={fetchProfile} />}
+            <SkillAssessmentModal selectedSkill={selectedSkill} onClose={closeModal} onStart={startAssessment} />
         </div>
     );
 };
