@@ -1,8 +1,13 @@
 // src/components/student/AttendanceChart.tsx
-import { Doughnut } from 'react-chartjs-2';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-
-ChartJS.register(ArcElement, Tooltip, Legend);
+import React from 'react';
+import { 
+    PieChart, 
+    Pie, 
+    Cell, 
+    Tooltip, 
+    ResponsiveContainer,
+    Legend
+} from 'recharts';
 
 interface ChartProps {
     present: number;
@@ -10,32 +15,76 @@ interface ChartProps {
 }
 
 const AttendanceChart = ({ present, absent }: ChartProps) => {
-    const data = {
-        labels: ['Present', 'Absent'],
-        datasets: [
-            {
-                data: [present, absent],
-                backgroundColor: ['#4ade80', '#f87171'], // green-400, red-400
-                borderColor: ['#ffffff', '#ffffff'],
-                borderWidth: 2,
-            },
-        ],
-    };
+    
+    // Prepare data for Recharts
+    const data = [
+        { name: 'Present', value: present },
+        { name: 'Absent', value: absent },
+    ];
 
-    const options = {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'top' as const,
-            },
-            title: {
-                display: true,
-                text: 'Attendance Ratio',
-            },
-        },
-    };
+    // Modern Colors: Emerald for Present, Brand Red for Absent
+    const COLORS = ['#10B981', '#EF4444']; 
 
-    return <Doughnut data={data} options={options} />;
+    if (present === 0 && absent === 0) {
+        return (
+            <div className="flex h-full items-center justify-center text-xs text-gray-400">
+                No data available
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full h-full min-h-[200px]">
+            <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                    <Pie
+                        data={data}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60} // Makes it a Donut
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                        stroke="none" // Removes default ugly border
+                    >
+                        {data.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend 
+                        verticalAlign="bottom" 
+                        height={36} 
+                        iconType="circle"
+                        formatter={(value, entry: any) => (
+                            <span className="text-gray-600 text-xs font-bold ml-1">{value}</span>
+                        )}
+                    />
+                </PieChart>
+            </ResponsiveContainer>
+        </div>
+    );
+};
+
+// --- Custom Tooltip ---
+const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0];
+        return (
+            <div className="bg-white/95 backdrop-blur-md border border-gray-100 shadow-xl rounded-xl p-3">
+                <div className="flex items-center gap-2">
+                    <div 
+                        className="w-2 h-2 rounded-full" 
+                        style={{ backgroundColor: data.payload.fill }}
+                    />
+                    <p className="text-sm font-bold text-gray-800">
+                        {data.name}: <span className="text-gray-600">{data.value}</span>
+                    </p>
+                </div>
+            </div>
+        );
+    }
+    return null;
 };
 
 export default AttendanceChart;

@@ -2,10 +2,13 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { ChartBarIcon, UsersIcon, ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline';
 import useAuthStore from '../store/authStore';
+import { InboxIcon } from '@heroicons/react/24/outline';
 
 const navigation = [
     { name: 'Dashboard', href: '/teacher/dashboard', icon: ChartBarIcon },
     { name: 'Students', href: '/teacher/students', icon: UsersIcon },
+    { name: 'Requests', href: '/teacher/requests', icon: InboxIcon },
+    
 ];
 
 const TeacherLayout = () => {

@@ -16,6 +16,9 @@ import SkillAssessmentPage from './pages/student/SkillAssessmentPage';
 
 import LandingPage from './pages/LandingPage';
 
+import StudentApprovalsPage from './pages/student/StudentApprovalsPage';
+import TeacherRequestsPage from './pages/teacher/TeacherRequestsPage';
+
 function App() {
   return (
     <Router>
@@ -32,6 +35,7 @@ function App() {
                 <Route path="/student/dashboard" element={<StudentDashboardPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/assessment/:skillName/:skillId" element={<SkillAssessmentPage />} />
+                <Route path="/student/approvals" element={<StudentApprovalsPage />} />
             </Route>
         </Route>
 
@@ -40,6 +44,7 @@ function App() {
                 <Route path="/teacher/dashboard" element={<TeacherDashboardPage />} />
                 <Route path="/teacher/students" element={<TeacherStudentsPage />} />
                 <Route path="/teacher/view-student/:rollNumber" element={<ViewStudentDashboardPage />} />
+                <Route path="/teacher/requests" element={<TeacherRequestsPage />} />
             </Route>
         </Route>
       </Routes>
