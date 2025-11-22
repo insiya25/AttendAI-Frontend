@@ -1,29 +1,28 @@
 // src/components/student/EditProjectsModal.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { XMarkIcon, PencilIcon, TrashIcon, PlusIcon, FolderIcon } from '@heroicons/react/24/outline';
 import apiClient from '../../api/axios';
-import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 
-// This component will manage both the list and the add/edit form
-const EditProjectsModal = ({ projects, onClose, onSuccess }) => {
-    // State to manage which project is currently being edited
-    const [editingProject, setEditingProject] = useState(null);
+const EditProjectsModal = ({ projects, onClose, onSuccess }: any) => {
+    const [editingProject, setEditingProject] = useState<any>(null);
+    const [isFormVisible, setIsFormVisible] = useState(false);
 
-    const handleEditClick = (project) => {
-        setEditingProject({ ...project }); // Create a copy to edit
+    const handleEditClick = (project: any) => {
+        setEditingProject({ ...project });
+        setIsFormVisible(true);
     };
 
-    const handleDelete = async (projectId) => {
-        if (window.confirm("Are you sure you want to delete this project?")) {
+    const handleDelete = async (projectId: number) => {
+        if (window.confirm("Delete this project?")) {
             try {
                 await apiClient.delete(`/profile/projects/${projectId}/delete/`);
                 onSuccess();
-            } catch (error) {
-                console.error("Failed to delete project", error);
-            }
+            } catch (error) { console.error(error); }
         }
     };
 
-    const handleFormSubmit = async (projectData) => {
+    const handleFormSubmit = async (projectData: any) => {
         const isEditing = !!projectData.id;
         const endpoint = isEditing ? `/profile/projects/${projectData.id}/` : '/profile/projects/';
         const method = isEditing ? 'put' : 'post';
@@ -31,97 +30,111 @@ const EditProjectsModal = ({ projects, onClose, onSuccess }) => {
         try {
             await apiClient[method](endpoint, projectData);
             onSuccess();
-            setEditingProject(null); // Close the form after submission
-        } catch (error) {
-            console.error(`Failed to ${isEditing ? 'update' : 'add'} project`, error);
-        }
+            setEditingProject(null);
+            setIsFormVisible(false);
+        } catch (error) { console.error(error); }
     };
-    
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center">
-            <div className="bg-gray-800 text-white p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                <h2 className="text-2xl font-bold mb-4">Edit Projects</h2>
 
-                <div className="flex-1 overflow-y-auto pr-2">
-                    {/* List of existing projects */}
-                    <div className="space-y-3 mb-6">
-                        {projects.map(project => (
-                            <div key={project.id} className="flex justify-between items-center bg-gray-900 p-3 rounded">
-                                <div>
-                                    <p className="font-semibold">{project.project_name} (Sem {project.semester})</p>
-                                    <p className="text-sm text-gray-400">{project.description.substring(0, 50)}...</p>
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                    <button onClick={() => handleEditClick(project)} className="text-blue-400 hover:text-blue-300"><PencilIcon className="h-5 w-5" /></button>
-                                    <button onClick={() => handleDelete(project.id)} className="text-red-500 hover:text-red-400"><TrashIcon className="h-5 w-5" /></button>
-                                </div>
-                            </div>
-                        ))}
+    return (
+        <AnimatePresence>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+                <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    onClick={onClose} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" 
+                />
+                
+                <motion.div 
+                    initial={{ scale: 0.95, opacity: 0, y: 20 }} 
+                    animate={{ scale: 1, opacity: 1, y: 0 }} 
+                    exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                    className="relative bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                >
+                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                        <h2 className="text-xl font-bold text-gray-900">Project Portfolio</h2>
+                        <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 text-gray-400 transition-colors">
+                            <XMarkIcon className="w-5 h-5" />
+                        </button>
                     </div>
 
-                    {/* Add/Edit Form */}
-                    <ProjectForm 
-                        project={editingProject} 
-                        onSubmit={handleFormSubmit} 
-                        onCancel={() => setEditingProject(null)} 
-                    />
-                </div>
-                
-                <div className="text-right mt-4 pt-4 border-t border-gray-700">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-600 rounded">Done</button>
-                </div>
+                    <div className="flex-1 overflow-y-auto p-6">
+                        {isFormVisible ? (
+                            <ProjectForm 
+                                project={editingProject} 
+                                onSubmit={handleFormSubmit} 
+                                onCancel={() => { setIsFormVisible(false); setEditingProject(null); }} 
+                            />
+                        ) : (
+                            <div className="space-y-3">
+                                <button 
+                                    onClick={() => { setEditingProject(null); setIsFormVisible(true); }}
+                                    className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 font-medium hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <PlusIcon className="w-5 h-5" /> Add New Project
+                                </button>
+
+                                {projects.map((project: any) => (
+                                    <div key={project.id} className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm hover:shadow-md transition-all group flex justify-between items-start">
+                                        <div className="flex gap-4">
+                                            <div className="p-3 bg-gray-50 rounded-lg text-gray-400 group-hover:text-red-500 group-hover:bg-red-50 transition-colors">
+                                                <FolderIcon className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-gray-900">{project.project_name}</h4>
+                                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mt-0.5">Semester {project.semester}</p>
+                                                <p className="text-sm text-gray-500 mt-2 line-clamp-1">{project.description}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => handleEditClick(project)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"><PencilIcon className="w-4 h-4" /></button>
+                                            <button onClick={() => handleDelete(project.id)} className="p-2 hover:bg-red-50 rounded-lg text-red-500"><TrashIcon className="w-4 h-4" /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
             </div>
-        </div>
+        </AnimatePresence>
     );
 };
 
-// A sub-component for the form to keep state organized
-const ProjectForm = ({ project, onSubmit, onCancel }) => {
-    const [formData, setFormData] = useState({
-        project_name: '',
-        semester: '',
-        description: '',
-    });
+const ProjectForm = ({ project, onSubmit, onCancel }: any) => {
+    const [formData, setFormData] = useState({ project_name: '', semester: '', description: '' });
 
-    // When the 'project' prop changes (i.e., user clicks edit), populate the form
-    React.useEffect(() => {
-        if (project) {
-            setFormData({
-                project_name: project.project_name,
-                semester: project.semester,
-                description: project.description,
-            });
-        } else {
-            // Reset form when adding a new project or cancelling
-            setFormData({ project_name: '', semester: '', description: '' });
-        }
+    useEffect(() => {
+        if (project) setFormData({ project_name: project.project_name, semester: project.semester, description: project.description });
     }, [project]);
 
-    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    const handleChange = (e: any) => setFormData({ ...formData, [e.target.name]: e.target.value });
     
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSubmit({ id: project?.id, ...formData });
-    };
-
-    const isEditing = !!project;
-
     return (
-        <div>
-            <h3 className="text-xl font-semibold mb-2">{isEditing ? 'Edit Project' : 'Add New Project'}</h3>
-            <form onSubmit={handleSubmit} className="space-y-3 bg-gray-900 p-4 rounded-lg">
-                <input type="text" name="project_name" value={formData.project_name} onChange={handleChange} placeholder="Project Name" required className="w-full bg-gray-700 p-2 rounded" />
-                <select name="semester" value={formData.semester} onChange={handleChange} required className="w-full bg-gray-700 p-2 rounded">
+        <form onSubmit={(e) => { e.preventDefault(); onSubmit({ id: project?.id, ...formData }); }} className="space-y-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{project ? 'Edit Project' : 'New Project'}</h3>
+            
+            <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Project Name</label>
+                <input type="text" name="project_name" value={formData.project_name} onChange={handleChange} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-red-500 focus:bg-white focus:outline-none" />
+            </div>
+            
+            <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Semester</label>
+                <select name="semester" value={formData.semester} onChange={handleChange} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-red-500 focus:bg-white focus:outline-none">
                     <option value="">Select Semester</option>
                     {[...Array(8).keys()].map(i => <option key={i+1} value={i+1}>Semester {i+1}</option>)}
                 </select>
-                <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Description" required rows="3" className="w-full bg-gray-700 p-2 rounded"></textarea>
-                <div className="flex justify-end space-x-2">
-                    {isEditing && <button type="button" onClick={onCancel} className="px-3 py-1 bg-gray-600 rounded">Cancel</button>}
-                    <button type="submit" className="px-3 py-1 bg-blue-600 rounded">{isEditing ? 'Update Project' : 'Add Project'}</button>
-                </div>
-            </form>
-        </div>
+            </div>
+
+            <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Description</label>
+                <textarea name="description" value={formData.description} onChange={handleChange} required rows={4} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-red-500 focus:bg-white focus:outline-none resize-none" />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={onCancel} className="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 font-medium">Cancel</button>
+                <button type="submit" className="px-6 py-2.5 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 shadow-lg">Save Project</button>
+            </div>
+        </form>
     );
 };
 
