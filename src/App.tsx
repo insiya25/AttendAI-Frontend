@@ -19,6 +19,8 @@ import LandingPage from './pages/LandingPage';
 import StudentApprovalsPage from './pages/student/StudentApprovalsPage';
 import TeacherRequestsPage from './pages/teacher/TeacherRequestsPage';
 
+import TeacherAttendancePage from './pages/teacher/TeacherAttendancePage';
+
 function App() {
   return (
     <Router>
@@ -45,6 +47,7 @@ function App() {
                 <Route path="/teacher/students" element={<TeacherStudentsPage />} />
                 <Route path="/teacher/view-student/:rollNumber" element={<ViewStudentDashboardPage />} />
                 <Route path="/teacher/requests" element={<TeacherRequestsPage />} />
+                <Route path="/teacher/attendance" element={<TeacherAttendancePage />} />
             </Route>
         </Route>
       </Routes>
