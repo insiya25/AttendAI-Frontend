@@ -10,6 +10,9 @@ import {
     CameraIcon
 } from '@heroicons/react/24/outline';
 
+import { useDropzone } from 'react-dropzone';
+import { CloudArrowUpIcon, SparklesIcon } from '@heroicons/react/24/outline';
+
 // --- Types ---
 interface StudentRow {
     id: number;
@@ -127,6 +130,81 @@ const TeacherAttendancePage = () => {
             );
         }
         return headers;
+    };
+
+    // --- OCR State ---
+    const [ocrResults, setOcrResults] = useState<any>(null);
+
+    const handleOCRUpload = async (file: File) => {
+        setLoading(true);
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const response = await apiClient.post('/teacher/attendance/ocr/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            if (response.data.records) {
+                setOcrResults(response.data.records);
+            } else {
+                alert("AI could not find records. Try a clearer image.");
+            }
+        } catch (error) {
+            console.error("OCR Failed", error);
+            alert("Failed to analyze image.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const toggleOCRStatus = (studentIdx: number, attendanceIdx: number) => {
+        const newResults = [...ocrResults];
+        const current = newResults[studentIdx].attendance[attendanceIdx].status;
+        newResults[studentIdx].attendance[attendanceIdx].status = current === 'present' ? 'absent' : 'present';
+        setOcrResults(newResults);
+    };
+
+    const saveOCRData = async () => {
+        if (!selectedSubjectId) {
+            alert("Please select a subject first (in the Manual tab) to associate this data.");
+            return;
+        }
+        
+        setSaving(true);
+        
+        // Convert OCR structure to our Bulk Update format
+        const updates: any[] = [];
+        
+        // WARNING: We need to map Roll Numbers to User IDs. 
+        // Ideally, the backend should handle this mapping using the Roll No string.
+        // For now, we will send a specialized request or we need to map it here.
+        // Let's assume we fetch the student list first to get IDs.
+        
+        // Quick fix logic: Match OCR roll number to loaded 'students' (from Manual mode)
+        // If students aren't loaded, we should fetch them.
+        
+        // ... (See Step 4 for Backend Logic Adjustment) ...
+        // For simplicity in this step, we assume the backend can handle "roll_number" instead of "student_id" 
+        // or we map it here if "students" state is populated.
+        
+        try {
+             // Construct payload suitable for a slightly modified BulkUpdate view
+             // We will send the raw OCR results and let backend match Roll Numbers
+             await apiClient.post('/teacher/attendance/update/', {
+                 subject_id: selectedSubjectId,
+                 ocr_data: ocrResults, // Sending the whole structure
+                 is_ocr: true
+             });
+             alert("Attendance saved successfully!");
+             setOcrResults(null);
+             setMode('manual'); // Go back to grid to see results
+             fetchAttendanceSheet(); // Refresh grid
+        } catch (err) {
+            console.error(err);
+            alert("Failed to save data.");
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -288,15 +366,130 @@ const TeacherAttendancePage = () => {
             )}
 
             {/* --- OCR MODE (Placeholder) --- */}
+           {/* --- OCR MODE --- */}
             {mode === 'ocr' && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
-                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
-                        <CameraIcon className="w-10 h-10" />
-                    </div>
-                    <h2 className="text-xl font-bold text-gray-900">AI Scanner</h2>
-                    <p className="text-gray-500 mt-2">Coming up next: Upload sheet photos for auto-detection.</p>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+                    
+                    {/* 1. Upload Area */}
+                    {!ocrResults && !loading && (
+                        <div className="max-w-2xl mx-auto">
+                            <OCRUploader onUpload={handleOCRUpload} />
+                        </div>
+                    )}
+
+                    {/* 2. Loading State */}
+                    {loading && (
+                        <div className="flex flex-col items-center justify-center py-20">
+                            <div className="relative w-32 h-32 mb-8">
+                                <div className="absolute inset-0 bg-red-100 rounded-full animate-ping opacity-20"></div>
+                                <div className="relative bg-white p-6 rounded-full shadow-xl border border-red-100 flex items-center justify-center">
+                                    <SparklesIcon className="w-12 h-12 text-red-600 animate-pulse" />
+                                </div>
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900">Analyzing Handwritten Sheet...</h3>
+                            <p className="text-gray-500 mt-2">Our AI is detecting names, dates, and signatures.</p>
+                        </div>
+                    )}
+
+                    {/* 3. Results Preview & Verification */}
+                    {ocrResults && !loading && (
+                        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-red-50/30">
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                        <SparklesIcon className="w-5 h-5 text-red-600" />
+                                        AI Analysis Results
+                                    </h3>
+                                    <p className="text-sm text-gray-500">Please verify the data before saving.</p>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={() => setOcrResults(null)}
+                                        className="px-4 py-2 rounded-xl text-gray-600 font-medium hover:bg-gray-100"
+                                    >
+                                        Discard
+                                    </button>
+                                    <button 
+                                        onClick={saveOCRData}
+                                        disabled={saving}
+                                        className="px-6 py-2 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 shadow-lg"
+                                    >
+                                        {saving ? 'Syncing Database...' : 'Approve & Save'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Roll No</th>
+                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name</th>
+                                            {/* Dynamic Date Headers based on first record */}
+                                            {ocrResults[0]?.attendance.map((att: any, i: number) => (
+                                                <th key={i} className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase min-w-[100px]">
+                                                    {att.date}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {ocrResults.map((student: any, idx: number) => (
+                                            <tr key={idx}>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{student.roll_number}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.name}</td>
+                                                {student.attendance.map((att: any, i: number) => (
+                                                    <td key={i} className="px-4 py-4 whitespace-nowrap text-center">
+                                                        <button
+                                                            onClick={() => toggleOCRStatus(idx, i)}
+                                                            className={`px-3 py-1 rounded-full text-xs font-bold uppercase transition-all ${
+                                                                att.status === 'present' 
+                                                                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                                                                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                                            }`}
+                                                        >
+                                                            {att.status}
+                                                        </button>
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
                 </motion.div>
             )}
+        </div>
+    );
+};
+
+const OCRUploader = ({ onUpload }: { onUpload: (file: File) => void }) => {
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        accept: { 'image/*': [] },
+        maxFiles: 1,
+        onDrop: acceptedFiles => {
+            if (acceptedFiles.length > 0) onUpload(acceptedFiles[0]);
+        }
+    });
+
+    return (
+        <div 
+            {...getRootProps()} 
+            className={`border-3 border-dashed rounded-3xl p-12 text-center cursor-pointer transition-all ${
+                isDragActive ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-red-400 hover:bg-gray-50'
+            }`}
+        >
+            <input {...getInputProps()} />
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CameraIcon className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Upload Attendance Sheet</h3>
+            <p className="text-gray-500 mt-2">
+                Drag & drop a photo here, or <span className="text-red-600 font-bold">click to select</span>.
+            </p>
+            <p className="text-xs text-gray-400 mt-6">Supports JPG, PNG. Mobile camera friendly.</p>
         </div>
     );
 };
