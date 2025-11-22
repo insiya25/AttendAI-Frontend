@@ -1,23 +1,16 @@
 // src/components/teacher/AddStudentModal.tsx
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import apiClient from '../../api/axios';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, MagnifyingGlassIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon as SolidCheck } from '@heroicons/react/24/solid';
 
-interface Subject {
-    id: number;
-    name: string;
-}
-
-interface Student {
-    user_id: number;
-    full_name: string;
-    roll_number: string;
-}
-
+interface Subject { id: number; name: string; }
+interface Student { user_id: number; full_name: string; roll_number: string; }
 interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: () => void; // To trigger a refresh on the parent page
+    onSuccess: () => void;
     teacherSubjects: Subject[];
 }
 
@@ -26,8 +19,6 @@ const AddStudentModal = ({ isOpen, onClose, onSuccess, teacherSubjects }: ModalP
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedStudentIds, setSelectedStudentIds] = useState<Set<number>>(new Set());
     const [selectedSubjectIds, setSelectedSubjectIds] = useState<Set<number>>(new Set());
-    
-    // UI Feedback State
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -40,7 +31,6 @@ const AddStudentModal = ({ isOpen, onClose, onSuccess, teacherSubjects }: ModalP
                 .catch(() => setError("Failed to load student list."))
                 .finally(() => setIsLoading(false));
         } else {
-            // Reset state when modal is closed
             setSearchTerm('');
             setSelectedStudentIds(new Set());
             setSelectedSubjectIds(new Set());
@@ -55,24 +45,11 @@ const AddStudentModal = ({ isOpen, onClose, onSuccess, teacherSubjects }: ModalP
         );
     }, [allStudents, searchTerm]);
 
-    const handleStudentSelect = (studentId: number) => {
-        const newSelection = new Set(selectedStudentIds);
-        if (newSelection.has(studentId)) {
-            newSelection.delete(studentId);
-        } else {
-            newSelection.add(studentId);
-        }
-        setSelectedStudentIds(newSelection);
-    };
-    
-    const handleSubjectSelect = (subjectId: number) => {
-        const newSelection = new Set(selectedSubjectIds);
-        if (newSelection.has(subjectId)) {
-            newSelection.delete(subjectId);
-        } else {
-            newSelection.add(subjectId);
-        }
-        setSelectedSubjectIds(newSelection);
+    const toggleSelection = (id: number, set: Set<number>, setFn: any) => {
+        const newSet = new Set(set);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setFn(newSet);
     };
 
     const handleSubmit = async () => {
@@ -87,8 +64,8 @@ const AddStudentModal = ({ isOpen, onClose, onSuccess, teacherSubjects }: ModalP
                 student_ids: Array.from(selectedStudentIds),
                 subject_ids: Array.from(selectedSubjectIds),
             });
-            onSuccess(); // Trigger parent refresh
-            onClose(); // Close modal
+            onSuccess();
+            onClose();
         } catch (err) {
             setError("An error occurred. Please try again.");
         } finally {
@@ -96,71 +73,142 @@ const AddStudentModal = ({ isOpen, onClose, onSuccess, teacherSubjects }: ModalP
         }
     };
 
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                <div className="p-4 border-b flex justify-between items-center">
-                    <h2 className="text-xl font-bold">Add Students to Subjects</h2>
-                    <button onClick={onClose}><XMarkIcon className="h-6 w-6" /></button>
-                </div>
-
-                <div className="p-4 overflow-y-auto">
-                    {/* Step 1: Select Subjects */}
-                    <div className="mb-4">
-                        <h3 className="font-semibold text-gray-800 mb-2">1. Select Subjects to add students to:</h3>
-                        <div className="flex flex-wrap gap-2">
-                            {teacherSubjects.map(subject => (
-                                <button key={subject.id} onClick={() => handleSubjectSelect(subject.id)}
-                                    className={`px-3 py-1 text-sm rounded-full border ${selectedSubjectIds.has(subject.id) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700'}`}
-                                >
-                                    {subject.name}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Step 2: Select Students */}
-                    <div>
-                        <h3 className="font-semibold text-gray-800 mb-2">2. Select Students:</h3>
-                        <input
-                            type="text"
-                            placeholder="Search by name or roll number..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-md mb-2"
-                        />
-                        <div className="border rounded-md max-h-64 overflow-y-auto">
-                            {isLoading ? <p className="p-4">Loading students...</p> : (
-                                <ul className="divide-y">
-                                    {filteredStudents.map(student => (
-                                        <li key={student.user_id} className="p-2 flex items-center cursor-pointer hover:bg-gray-50" onClick={() => handleStudentSelect(student.user_id)}>
-                                            <input type="checkbox" readOnly checked={selectedStudentIds.has(student.user_id)} className="h-4 w-4 mr-3" />
-                                            <div>
-                                                <p className="font-medium">{student.full_name}</p>
-                                                <p className="text-sm text-gray-500">{student.roll_number}</p>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="p-4 border-t bg-gray-50">
-                    {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
-                    <button
-                        onClick={handleSubmit}
-                        disabled={isSubmitting}
-                        className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300"
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+                    <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        onClick={onClose} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" 
+                    />
+                    
+                    <motion.div 
+                        initial={{ scale: 0.95, opacity: 0, y: 20 }} 
+                        animate={{ scale: 1, opacity: 1, y: 0 }} 
+                        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                        className="relative bg-white w-full max-w-4xl h-[80vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden"
                     >
-                        {isSubmitting ? 'Adding...' : `Add ${selectedStudentIds.size} Students to ${selectedSubjectIds.size} Subjects`}
-                    </button>
+                        {/* Header */}
+                        <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white z-10">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">Enroll Students</h2>
+                                <p className="text-gray-500 text-sm mt-1">Assign students to your subjects.</p>
+                            </div>
+                            <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                                <XMarkIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+                            
+                            {/* Left Panel: Subjects */}
+                            <div className="w-full md:w-1/3 bg-gray-50 border-r border-gray-100 p-6 overflow-y-auto">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Select Subjects</h3>
+                                <div className="space-y-2">
+                                    {teacherSubjects.map(subject => {
+                                        const isSelected = selectedSubjectIds.has(subject.id);
+                                        return (
+                                            <button 
+                                                key={subject.id} 
+                                                onClick={() => toggleSelection(subject.id, selectedSubjectIds, setSelectedSubjectIds)}
+                                                className={`w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 flex items-center justify-between group ${
+                                                    isSelected 
+                                                    ? 'bg-white border-red-200 shadow-md shadow-red-100' 
+                                                    : 'bg-white border-transparent hover:border-gray-200'
+                                                }`}
+                                            >
+                                                <span className={`font-medium ${isSelected ? 'text-red-700' : 'text-gray-700'}`}>
+                                                    {subject.name}
+                                                </span>
+                                                {isSelected ? (
+                                                    <SolidCheck className="w-5 h-5 text-red-600" />
+                                                ) : (
+                                                    <div className="w-5 h-5 rounded-full border-2 border-gray-200 group-hover:border-gray-300" />
+                                                )}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Right Panel: Students */}
+                            <div className="flex-1 p-6 flex flex-col overflow-hidden bg-white">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select Students</h3>
+                                    <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs font-bold">
+                                        {selectedStudentIds.size} Selected
+                                    </span>
+                                </div>
+
+                                {/* Search */}
+                                <div className="relative mb-4">
+                                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search students..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-red-500 focus:bg-white transition-all"
+                                    />
+                                </div>
+
+                                {/* List */}
+                                <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+                                    {isLoading ? (
+                                        <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-red-600"></div></div>
+                                    ) : (
+                                        filteredStudents.map(student => {
+                                            const isSelected = selectedStudentIds.has(student.user_id);
+                                            return (
+                                                <div 
+                                                    key={student.user_id} 
+                                                    onClick={() => toggleSelection(student.user_id, selectedStudentIds, setSelectedStudentIds)}
+                                                    className={`flex items-center p-3 rounded-xl cursor-pointer transition-all border ${
+                                                        isSelected ? 'bg-red-50 border-red-100' : 'bg-white border-gray-100 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    <div className={`w-5 h-5 rounded-md border flex items-center justify-center mr-4 transition-colors ${
+                                                        isSelected ? 'bg-red-600 border-red-600' : 'border-gray-300 bg-white'
+                                                    }`}>
+                                                        {isSelected && <SolidCheck className="w-4 h-4 text-white" />}
+                                                    </div>
+                                                    <div>
+                                                        <p className={`font-medium text-sm ${isSelected ? 'text-red-900' : 'text-gray-900'}`}>
+                                                            {student.full_name}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">{student.roll_number}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                    {!isLoading && filteredStudents.length === 0 && (
+                                        <p className="text-center text-gray-400 py-8 text-sm">No students found matching "{searchTerm}"</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-8 py-4 border-t border-gray-100 bg-white flex justify-between items-center">
+                            <p className="text-sm text-red-600 font-medium h-5">{error}</p>
+                            <div className="flex gap-3">
+                                <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 font-medium transition-colors">
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleSubmit} 
+                                    disabled={isSubmitting || selectedSubjectIds.size === 0 || selectedStudentIds.size === 0}
+                                    className="px-6 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-200 transition-all"
+                                >
+                                    {isSubmitting ? 'Processing...' : 'Confirm Assignment'}
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
                 </div>
-            </div>
-        </div>
+            )}
+        </AnimatePresence>
     );
 };
 
