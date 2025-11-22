@@ -3,6 +3,11 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import apiClient from '../../api/axios';
 import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 
 // Define types for our data structures
 type Stage = 'start' | 'loading_questions' | 'in_progress' | 'evaluating' | 'completed';
@@ -141,7 +146,15 @@ const SkillAssessmentPage = () => {
                             <div className="px-4 py-2 bg-red-500 text-white rounded-full font-bold">Try Again</div>
                         )}
                     </div>
-                    <p className="mt-4 text-gray-300">{results.overall_review}</p>
+                   <div className="mt-4 text-gray-300">
+                    <ReactMarkdown
+                        remarkPlugins={[remarkGfm, remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
+                    >
+                        {results.overall_review}
+                    </ReactMarkdown>
+                    </div>
+
                 </div>
 
                 {/* Detailed Breakdown */}

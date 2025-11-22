@@ -14,6 +14,8 @@ import ViewStudentDashboardPage from './pages/teacher/ViewStudentDashboardPage';
 import StudentLayout from './layouts/StudentLayout';
 import SkillAssessmentPage from './pages/student/SkillAssessmentPage';
 
+import LandingPage from './pages/LandingPage';
+
 function App() {
   return (
     <Router>
@@ -21,7 +23,7 @@ function App() {
         {/* Public Routes */}
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<LoginPage />} />
+        <Route path="/" element={<LandingPage />} />
 
         {/* Protected Routes */}
 
