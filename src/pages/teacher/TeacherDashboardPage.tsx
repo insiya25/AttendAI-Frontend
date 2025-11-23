@@ -12,7 +12,7 @@ import {
     ChevronDownIcon,
     PresentationChartLineIcon
 } from '@heroicons/react/24/outline';
-
+import { Link } from 'react-router-dom';
 // Recharts Imports
 import { 
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
@@ -89,10 +89,13 @@ const TeacherDashboardPage = () => {
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome, Teacher!</h2>
                     <p className="text-gray-500 mb-6">You are not assigned to any subjects yet. Update your profile to start tracking attendance.</p>
+                    <Link to="/teacher/profile">
                     <button className="bg-red-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-red-700 transition">
                         Go to Profile
                     </button>
+                    </Link>
                 </div>
+
             </div>
         );
     }

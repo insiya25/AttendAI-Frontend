@@ -231,10 +231,15 @@ const StudentDashboardPage = ({ studentRollNumber }: DashboardProps) => {
 
                                     {/* Card Body (Chart + Stats) */}
                                     <div className="p-6 flex flex-col items-center">
-                                        <div className="w-32 h-32 mb-4 relative">
-                                            {/* Placeholder for Future Recharts Pie */}
-                                            <AttendanceChart present={subject.present_count} absent={subject.absent_count} />
-                                        </div>
+                                       <div className="w-full flex justify-center mb-4">
+    <div className="w-40 h-40 md:w-44 md:h-44">
+        <AttendanceChart 
+            present={subject.present_count} 
+            absent={subject.absent_count} 
+        />
+    </div>
+</div>
+
                                         
                                         <div className="grid grid-cols-2 w-full gap-4 text-center mt-2">
                                             <div className="bg-green-50 p-2 rounded-xl">
