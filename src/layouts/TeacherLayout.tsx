@@ -12,9 +12,11 @@ import {
 } from '@heroicons/react/24/outline';
 import useAuthStore from '../store/authStore';
 import { ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
+import { UserCircleIcon } from '@heroicons/react/24/outline';
 
 const navigation = [
     { name: 'Dashboard', href: '/teacher/dashboard', icon: ChartBarIcon },
+    { name: 'Profile', href: '/teacher/profile', icon: UserCircleIcon },
     { name: 'Students', href: '/teacher/students', icon: UsersIcon },
     { name: 'Requests', href: '/teacher/requests', icon: InboxIcon },
     { name: 'Attendance', href: '/teacher/attendance', icon: ClipboardDocumentListIcon },

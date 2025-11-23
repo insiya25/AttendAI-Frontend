@@ -41,3 +41,28 @@ about:
 - teachers can view a dashboard of all the subject they teach, see all the students in the subject, see the absentee and presentee of each subject, view each student details and performance on attendance, projects, exams, and others. can contact them, can add student or remove in a particular subject
 - teachers can use AI powered OCR to simply take and upload the attendnace sheet photo and our AI power OCR will intelligently detect and write everything down in the database and show it in the beautiful dashboard, etc
 - teachers can configure their profile as well.
+
+
+
+
+----
+
+thanks! worked great! could you provide me a different seed where i can seed data directly for demo for a particular account (teacher or student)? i created a new student account with id 27.  i want you to fill the  attendance data (of whatever subject present whether 1 or  5 subjects doesnt matter) with random data of month last 2 months to current date, everytime i run it, it must clear prev added attendnace data of the particular student and readd it with new one everytime we run the script. so even if i ran the script, then next time i add another subject to it which ofcourse dont have any attendent data, then if i rerun the script it should refill all the data including the newly added subject as well.
+
+then i want you to create a second script where i can bulk insert all subjects at once, so everytime i run the script it should add all subjects into database. keep in mind that subject might be connected to foreignkeys so we dont want to clear them
+make it a template where i can simply append new subject easily inside the script then run it and it would add the new one. if the subject already exist in the database then ignore it, dont duplicate.
+
+currently the subjects i wanna add are:
+Deep learning
+Big data analytics & visualisation
+Design thinking
+Mobile computing
+Software testing and quality assurance
+Core java
+green computing
+DsA
+Ai ml
+advance web tech
+networking with linux
+
+

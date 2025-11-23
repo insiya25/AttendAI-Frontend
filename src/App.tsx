@@ -21,6 +21,8 @@ import TeacherRequestsPage from './pages/teacher/TeacherRequestsPage';
 
 import TeacherAttendancePage from './pages/teacher/TeacherAttendancePage';
 
+import TeacherProfilePage from './pages/teacher/TeacherProfilePage';
+
 function App() {
   return (
     <Router>
@@ -48,6 +50,7 @@ function App() {
                 <Route path="/teacher/view-student/:rollNumber" element={<ViewStudentDashboardPage />} />
                 <Route path="/teacher/requests" element={<TeacherRequestsPage />} />
                 <Route path="/teacher/attendance" element={<TeacherAttendancePage />} />
+                <Route path="/teacher/profile" element={<TeacherProfilePage />} />
             </Route>
         </Route>
       </Routes>
