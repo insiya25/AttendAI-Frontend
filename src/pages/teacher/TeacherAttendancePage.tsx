@@ -48,6 +48,9 @@ const TeacherAttendancePage = () => {
     const [ocrResults, setOcrResults] = useState<any>(null);
     const [scanStage, setScanStage] = useState(0); // For loader animation text
 
+    const [ocrSelectedSubjects, setOcrSelectedSubjects] = useState<number[]>([]); // Array of IDs
+    const [unknownStudents, setUnknownStudents] = useState<any[]>([]);
+
     // --- Initial Load ---
     useEffect(() => {
         // Fetch subjects for dropdown
@@ -130,14 +133,9 @@ const TeacherAttendancePage = () => {
 
     // --- OCR Logic ---
 
-    const handleOCRUpload = async (file: File) => {
+const handleOCRUpload = async (file: File) => {
         setLoading(true);
-        
-        // Cycle through loading messages
-        const interval = setInterval(() => {
-            setScanStage(prev => (prev + 1) % 4);
-        }, 1500);
-
+        // ... (timer logic) ...
         const formData = new FormData();
         formData.append('image', file);
 
@@ -147,14 +145,18 @@ const TeacherAttendancePage = () => {
             });
             if (response.data.records) {
                 setOcrResults(response.data.records);
+                setUnknownStudents(response.data.unknown_students || []);
+                
+                // Pre-select the currently filtered subject as default
+                if (selectedSubjectId) setOcrSelectedSubjects([selectedSubjectId]);
             } else {
-                alert("AI could not find records. Try a clearer image.");
+                alert("AI could not find records.");
             }
         } catch (error) {
             console.error("OCR Failed", error);
             alert("Failed to analyze image.");
         } finally {
-            clearInterval(interval);
+            // ... (cleanup) ...
             setLoading(false);
         }
     };
@@ -183,20 +185,22 @@ const TeacherAttendancePage = () => {
         setOcrResults(newResults);
     };
 
-    const saveOCRData = async () => {
-        if (!selectedSubjectId) {
-            alert("Please select a subject first (in the Manual tab filter) to associate this data.");
+const saveOCRData = async () => {
+        if (ocrSelectedSubjects.length === 0) {
+            alert("Please select at least one subject to apply this attendance to.");
             return;
         }
+        
         setSaving(true);
         try {
              await apiClient.post('/teacher/attendance/update/', {
-                 subject_id: selectedSubjectId,
+                 subject_ids: ocrSelectedSubjects, // Send Array
                  ocr_data: ocrResults,
                  is_ocr: true
              });
-             alert("Attendance synced with database!");
+             alert("Attendance synced successfully!");
              setOcrResults(null);
+             setUnknownStudents([]);
              setMode('manual');
              fetchAttendanceSheet(); 
         } catch (err) {
@@ -431,90 +435,157 @@ const TeacherAttendancePage = () => {
                     )}
 
                     {/* 3. Results Preview & Verification */}
-                    {ocrResults && !loading && (
-                        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                            <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center bg-red-50/30 gap-4">
-                                <div>
-                                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                        <SparklesIcon className="w-5 h-5 text-red-600" />
-                                        AI Analysis Results
-                                    </h3>
-                                    <p className="text-sm text-gray-500">Verify and edit the data before saving.</p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <button onClick={downloadCSV} className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Download CSV">
-                                        <TableCellsIcon className="w-5 h-5" />
-                                    </button>
-                                    <button onClick={downloadExcel} className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Download Excel">
-                                        <ArrowDownTrayIcon className="w-5 h-5" />
-                                    </button>
-                                    <div className="h-6 w-px bg-gray-300 mx-2"></div>
-                                    <button onClick={() => setOcrResults(null)} className="px-4 py-2 rounded-xl text-gray-600 font-medium hover:bg-gray-100">Discard</button>
-                                    <button onClick={saveOCRData} disabled={saving} className="px-6 py-2 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 shadow-lg">
-                                        {saving ? 'Syncing...' : 'Approve & Save'}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Roll No</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Name</th>
-                                            {ocrResults[0]?.attendance.map((att: any, i: number) => (
-                                                <th key={i} className="px-2 py-3 text-center min-w-[120px]">
-                                                    {/* Editable Date Header */}
-                                                    <input 
-                                                        type="text" 
-                                                        value={att.date} 
-                                                        onChange={(e) => handleOcrDateChange(i, e.target.value)}
-                                                        className="bg-transparent border-b border-dashed border-gray-400 text-center text-xs font-bold text-gray-700 w-full focus:outline-none focus:border-red-500"
-                                                    />
-                                                </th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {ocrResults.map((student: any, idx: number) => (
-                                            <tr key={idx}>
-                                                <td className="px-6 py-3 whitespace-nowrap">
-                                                    <input 
-                                                        type="text" 
-                                                        value={student.roll_number} 
-                                                        onChange={(e) => handleOcrChange(idx, 'roll_number', e.target.value)}
-                                                        className="w-full bg-transparent border-none text-sm font-bold text-gray-900 focus:ring-0"
-                                                    />
-                                                </td>
-                                                <td className="px-6 py-3 whitespace-nowrap">
-                                                    <input 
-                                                        type="text" 
-                                                        value={student.name} 
-                                                        onChange={(e) => handleOcrChange(idx, 'name', e.target.value)}
-                                                        className="w-full bg-transparent border-none text-sm text-gray-500 focus:ring-0"
-                                                    />
-                                                </td>
-                                                {student.attendance.map((att: any, i: number) => (
-                                                    <td key={i} className="px-4 py-3 whitespace-nowrap text-center">
-                                                        <button
-                                                            onClick={() => toggleOCRStatus(idx, i)}
-                                                            className={`px-3 py-1 rounded-full text-xs font-bold uppercase transition-all ${
-                                                                att.status === 'present' 
-                                                                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                                                                : 'bg-red-100 text-red-700 hover:bg-red-200'
-                                                            }`}
-                                                        >
-                                                            {att.status}
-                                                        </button>
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                   {ocrResults && !loading && (
+    <div className="space-y-6">
+        
+        {/* 1. WARNING BOX for Unknown Students */}
+        {unknownStudents.length > 0 && (
+            <motion.div 
+                initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-sm"
+            >
+                <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                        <span className="text-amber-600 text-xl">⚠️</span>
+                    </div>
+                    <div className="ml-3">
+                        <h3 className="text-sm font-bold text-amber-800">
+                            {unknownStudents.length} Students Not Found in Database
+                        </h3>
+                        <div className="mt-2 text-sm text-amber-700">
+                            <p>The following roll numbers were detected but do not have profiles. Their attendance <strong>will not be saved</strong>.</p>
+                            <ul className="list-disc pl-5 mt-1 space-y-1">
+                                {unknownStudents.map((s: any, i: number) => (
+                                    <li key={i}>{s.roll_number} - {s.name}</li>
+                                ))}
+                            </ul>
                         </div>
-                    )}
+                    </div>
+                </div>
+            </motion.div>
+        )}
+
+        {/* 2. PREVIEW & CONTROLS */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            <div className="p-6 border-b border-gray-100 bg-gray-50">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    
+                    {/* Subject Selector */}
+                    <div className="w-full md:w-1/2">
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                            Apply Attendance To Subject(s):
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            {subjects.map(sub => {
+                                const isSelected = ocrSelectedSubjects.includes(sub.id);
+                                return (
+                                    <button
+                                        key={sub.id}
+                                        onClick={() => {
+                                            if (isSelected) {
+                                                setOcrSelectedSubjects(prev => prev.filter(id => id !== sub.id));
+                                            } else {
+                                                setOcrSelectedSubjects(prev => [...prev, sub.id]);
+                                            }
+                                        }}
+                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                                            isSelected 
+                                            ? 'bg-red-600 text-white border-red-600 shadow-md' 
+                                            : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                                        }`}
+                                    >
+                                        {sub.name} {isSelected && '✓'}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {ocrSelectedSubjects.length === 0 && (
+                            <p className="text-xs text-red-500 mt-1 font-medium">Select at least one subject.</p>
+                        )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-3 self-end">
+                        <button onClick={downloadCSV} className="p-2 bg-white border border-gray-200 text-gray-500 hover:text-green-600 rounded-lg" title="Download CSV">
+                            <TableCellsIcon className="w-5 h-5" />
+                        </button>
+                        <button onClick={downloadExcel} className="p-2 bg-white border border-gray-200 text-gray-500 hover:text-green-600 rounded-lg" title="Download Excel">
+                            <ArrowDownTrayIcon className="w-5 h-5" />
+                        </button>
+                        <div className="h-8 w-px bg-gray-300 mx-2"></div>
+                        <button onClick={() => setOcrResults(null)} className="px-4 py-2 rounded-xl text-gray-600 font-medium hover:bg-gray-200">
+                            Discard
+                        </button>
+                        <button 
+                            onClick={saveOCRData}
+                            disabled={saving || ocrSelectedSubjects.length === 0}
+                            className="px-6 py-2 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {saving ? 'Syncing...' : 'Approve & Save'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-white">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Roll No</th>
+                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Detected Name</th>
+                            {ocrResults[0]?.attendance.map((att: any, i: number) => (
+                                <th key={i} className="px-2 py-3 text-center min-w-[120px]">
+                                    <input type="text" value={att.date} onChange={(e) => handleOcrDateChange(i, e.target.value)} className="bg-transparent border-b border-dashed border-gray-300 text-center text-xs font-bold text-gray-700 w-full focus:outline-none focus:border-red-500" />
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {ocrResults.map((student: any, idx: number) => {
+                            const exists = student.db_exists;
+                            return (
+                                <tr key={idx} className={exists ? 'hover:bg-gray-50' : 'bg-gray-50/50 opacity-60'}>
+                                    <td className="px-6 py-3 whitespace-nowrap">
+                                        {exists ? (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                Verified
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                Not Found
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-3 whitespace-nowrap">
+                                        <input type="text" value={student.roll_number} onChange={(e) => handleOcrChange(idx, 'roll_number', e.target.value)} className="w-full bg-transparent border-none text-sm font-bold text-gray-900 focus:ring-0" disabled={!exists} />
+                                    </td>
+                                    <td className="px-6 py-3 whitespace-nowrap">
+                                        <input type="text" value={student.name} onChange={(e) => handleOcrChange(idx, 'name', e.target.value)} className="w-full bg-transparent border-none text-sm text-gray-500 focus:ring-0" disabled={!exists} />
+                                    </td>
+                                    {student.attendance.map((att: any, i: number) => (
+                                        <td key={i} className="px-4 py-3 whitespace-nowrap text-center">
+                                            <button
+                                                onClick={() => exists && toggleOCRStatus(idx, i)}
+                                                disabled={!exists}
+                                                className={`px-3 py-1 rounded-full text-xs font-bold uppercase transition-all ${
+                                                    !exists ? 'bg-gray-200 text-gray-400 cursor-not-allowed' :
+                                                    att.status === 'present' ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                                }`}
+                                            >
+                                                {att.status}
+                                            </button>
+                                        </td>
+                                    ))}
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+)}
                 </motion.div>
             )}
         </div>
