@@ -13,6 +13,13 @@ import {
     SparklesIcon
 } from '@heroicons/react/24/outline';
 
+// --- Helper: Fix Image URLs ---
+const getImageUrl = (path: string | null) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return `http://127.0.0.1:8000${path}`;
+};
+
 // --- Interfaces ---
 interface Student { full_name: string; roll_number: string; photo: string | null; }
 interface Subject { id: number; name: string; students: Student[]; }
@@ -147,11 +154,12 @@ const TeacherStudentsPage = () => {
 
                                             <div className="relative mb-4">
                                                 <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-br from-gray-100 to-gray-200 group-hover:from-red-100 group-hover:to-red-200 transition-colors">
-                                                    <img 
+                                                                                                       <img 
                                                         className="w-full h-full rounded-full object-cover bg-white" 
-                                                        src={student.photo || `https://ui-avatars.com/api/?name=${student.full_name.replace(' ', '+')}&background=random`} 
+                                                        src={getImageUrl(student.photo) || `https://ui-avatars.com/api/?name=${student.full_name.replace(' ', '+')}&background=random`} 
                                                         alt="" 
                                                     />
+
                                                 </div>
                                                 <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-sm">
                                                     <div className="w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>

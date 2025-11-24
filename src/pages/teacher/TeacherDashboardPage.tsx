@@ -2,24 +2,36 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import apiClient from '../../api/axios';
-import { 
-    UsersIcon, 
-    CheckCircleIcon, 
-    XCircleIcon, 
+import {
+    UsersIcon,
+    CheckCircleIcon,
+    XCircleIcon,
     AcademicCapIcon,
     CalendarDaysIcon,
     SparklesIcon,
     ChevronDownIcon,
-    PresentationChartLineIcon
+    PresentationChartLineIcon,
+    ChartBarSquareIcon,
+    ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 // Recharts Imports
-import { 
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
-    PieChart, Pie, Cell, Legend
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+    PieChart, Pie, Cell, Legend, BarChart, Bar
 } from 'recharts';
 
+// --- Helper: Fix Image URLs ---
+const getImageUrl = (path: string | null) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return `http://127.0.0.1:8000${path}`;
+};
+
 // --- Interfaces ---
+
+interface DistributionData { range: string; count: number; status: string; }
+interface StudentBrief { full_name: string; roll_number: string; photo: string | null; } // Basic student info
 interface MonthlyTrend { day: string; presents: number; absents: number; }
 interface SubjectData {
     id: number;
@@ -28,14 +40,20 @@ interface SubjectData {
     present_percentage: number;
     absent_percentage: number;
     monthly_trend: MonthlyTrend[];
+    attendance_distribution: DistributionData[];
+    students: StudentBrief[];
 }
 interface DashboardData { full_name: string; subjects: SubjectData[]; }
+
+
 
 const TeacherDashboardPage = () => {
     const [data, setData] = useState<DashboardData | null>(null);
     const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [barHoverIndex, setBarHoverIndex] = useState<number | null>(null);
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -90,9 +108,9 @@ const TeacherDashboardPage = () => {
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome, Teacher!</h2>
                     <p className="text-gray-500 mb-6">You are not assigned to any subjects yet. Update your profile to start tracking attendance.</p>
                     <Link to="/teacher/profile">
-                    <button className="bg-red-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-red-700 transition">
-                        Go to Profile
-                    </button>
+                        <button className="bg-red-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-red-700 transition">
+                            Go to Profile
+                        </button>
                     </Link>
                 </div>
 
@@ -105,7 +123,7 @@ const TeacherDashboardPage = () => {
         hidden: { opacity: 0 },
         visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
     };
-    
+
     const itemVariants = {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0 }
@@ -113,7 +131,7 @@ const TeacherDashboardPage = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 relative overflow-hidden p-4 md:p-8">
-            
+
             {/* --- Background Effects --- */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
@@ -122,9 +140,9 @@ const TeacherDashboardPage = () => {
             </div>
 
             <div className="max-w-7xl mx-auto relative z-10">
-                
+
                 {/* --- Header Section --- */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10"
@@ -149,7 +167,7 @@ const TeacherDashboardPage = () => {
                             <div className="pl-4 pr-2 pointer-events-none">
                                 <span className="text-xs font-bold text-gray-400 uppercase mr-2">Subject:</span>
                             </div>
-                            <select 
+                            <select
                                 value={selectedSubjectId || ''}
                                 onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
                                 className="bg-transparent text-gray-900 font-bold text-sm py-2 pl-0 pr-8 focus:ring-0 border-none cursor-pointer"
@@ -164,7 +182,7 @@ const TeacherDashboardPage = () => {
                 </motion.div>
 
                 {selectedSubjectData && (
-                    <motion.div 
+                    <motion.div
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
@@ -172,28 +190,28 @@ const TeacherDashboardPage = () => {
                     >
                         {/* --- KPI Grid --- */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <DashboardCard 
-                                title="Enrolled Students" 
-                                value={selectedSubjectData.total_students} 
-                                icon={UsersIcon} 
+                            <DashboardCard
+                                title="Enrolled Students"
+                                value={selectedSubjectData.total_students}
+                                icon={UsersIcon}
                                 color="blue"
                             />
-                            <DashboardCard 
-                                title="Avg. Attendance" 
-                                value={`${selectedSubjectData.present_percentage}%`} 
-                                icon={CheckCircleIcon} 
+                            <DashboardCard
+                                title="Avg. Attendance"
+                                value={`${selectedSubjectData.present_percentage}%`}
+                                icon={CheckCircleIcon}
                                 color="green"
                             />
-                            <DashboardCard 
-                                title="Absence Rate" 
-                                value={`${selectedSubjectData.absent_percentage}%`} 
-                                icon={XCircleIcon} 
+                            <DashboardCard
+                                title="Absence Rate"
+                                value={`${selectedSubjectData.absent_percentage}%`}
+                                icon={XCircleIcon}
                                 color="red"
                             />
-                            <DashboardCard 
-                                title="Class Health" 
-                                value={classHealth.status} 
-                                icon={AcademicCapIcon} 
+                            <DashboardCard
+                                title="Class Health"
+                                value={classHealth.status}
+                                icon={AcademicCapIcon}
                                 color={classHealth.color as any}
                                 trend="Analysis"
                             />
@@ -201,7 +219,7 @@ const TeacherDashboardPage = () => {
 
                         {/* --- Main Charts Area --- */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            
+
                             {/* Monthly Trend (Area Chart) */}
                             <motion.div variants={itemVariants} className="lg:col-span-2 bg-white rounded-3xl shadow-xl border border-gray-100 p-6 md:p-8 flex flex-col">
                                 <div className="mb-6 flex justify-between items-center">
@@ -218,8 +236,8 @@ const TeacherDashboardPage = () => {
                                         <AreaChart data={selectedSubjectData.monthly_trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                             <defs>
                                                 <linearGradient id="colorPresents" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#DC2626" stopOpacity={0.2}/>
-                                                    <stop offset="95%" stopColor="#DC2626" stopOpacity={0}/>
+                                                    <stop offset="5%" stopColor="#DC2626" stopOpacity={0.2} />
+                                                    <stop offset="95%" stopColor="#DC2626" stopOpacity={0} />
                                                 </linearGradient>
                                             </defs>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
@@ -258,7 +276,7 @@ const TeacherDashboardPage = () => {
                                             <RechartsTooltip content={<CustomTooltip />} />
                                         </PieChart>
                                     </ResponsiveContainer>
-                                    
+
                                     {/* Center Text Overlay */}
                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none pb-8">
                                         <div className="text-center">
@@ -268,6 +286,88 @@ const TeacherDashboardPage = () => {
                                     </div>
                                 </div>
                             </motion.div>
+
+                          
+
+                                {/* Performance Distribution (2/3 Width) */}
+                                <motion.div variants={itemVariants} className="lg:col-span-2 bg-white rounded-3xl shadow-xl border border-gray-100 p-6 md:p-8">
+                                    <div className="mb-8">
+                                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                            <ChartBarSquareIcon className="w-6 h-6 text-red-600" />
+                                            Performance Distribution
+                                        </h3>
+                                        <p className="text-sm text-gray-500 mt-1">Student breakdown by attendance levels.</p>
+                                    </div>
+                                    <div className="h-80 w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart
+                                                data={selectedSubjectData.attendance_distribution}
+                                                onMouseMove={(state: any) => setBarHoverIndex(state.isTooltipActive ? state.activeTooltipIndex : null)}
+                                                onMouseLeave={() => setBarHoverIndex(null)}
+                                            >
+                                                <defs>
+                                                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor="#EF4444" stopOpacity={1} />
+                                                        <stop offset="100%" stopColor="#991B1B" stopOpacity={1} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                                                <XAxis dataKey="range" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 600 }} dy={10} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} allowDecimals={false} />
+                                                <RechartsTooltip cursor={{ fill: 'transparent' }} content={<DistributionTooltip />} />
+                                                <Bar dataKey="count" radius={[8, 8, 0, 0]} barSize={60} animationDuration={1500}>
+                                                    {selectedSubjectData.attendance_distribution.map((_, index) => (
+                                                        <Cell
+                                                            key={`cell-${index}`}
+                                                            fill={index === barHoverIndex ? '#B91C1C' : 'url(#barGradient)'}
+                                                            className="transition-all duration-300"
+                                                            style={{ filter: index === barHoverIndex ? 'drop-shadow(0px 4px 10px rgba(239, 68, 68, 0.5))' : 'none' }}
+                                                        />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </motion.div>
+
+                                {/* Student Roster / Insights (1/3 Width) */}
+                                <motion.div variants={itemVariants} className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden flex flex-col">
+                                    <div className="p-6 border-b border-gray-50">
+                                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                            <ExclamationTriangleIcon className="w-5 h-5 text-amber-500" />
+                                            Class Roster
+                                        </h3>
+                                        <p className="text-xs text-gray-500 mt-1">Students enrolled in this subject</p>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[320px] custom-scrollbar">
+                                        {selectedSubjectData.students && selectedSubjectData.students.length > 0 ? (
+                                            selectedSubjectData.students.map((student: any) => (
+                                                <div key={student.roll_number} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-100 transition-all group">
+                                                    <img
+                                                        src={getImageUrl(student.photo) || `https://ui-avatars.com/api/?name=${student.full_name.replace(' ', '+')}&background=random`}
+                                                        alt=""
+                                                        className="w-10 h-10 rounded-full object-cover border border-white shadow-sm"
+                                                    />
+                                                    <div className="overflow-hidden">
+                                                        <h4 className="text-sm font-bold text-gray-900 truncate">{student.full_name}</h4>
+                                                        <p className="text-xs text-gray-500">{student.roll_number}</p>
+                                                    </div>
+                                                    <Link to={`/teacher/view-student/${student.roll_number}`} className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button className="text-xs font-bold text-red-600 hover:underline">View</button>
+                                                    </Link>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="text-center py-8 text-gray-400 text-sm">No students found.</div>
+                                        )}
+                                    </div>
+                                    <div className="p-4 bg-gray-50 border-t border-gray-100 text-center">
+                                        <Link to="/teacher/students" className="text-xs font-bold text-red-600 hover:text-red-700 uppercase tracking-wider">View All Students</Link>
+                                    </div>
+                                </motion.div>
+
+                            
                         </div>
                     </motion.div>
                 )}
@@ -287,7 +387,7 @@ const DashboardCard = ({ title, value, icon: Icon, color, trend }: any) => {
     };
 
     return (
-        <motion.div 
+        <motion.div
             variants={{ hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } }}
             whileHover={{ y: -5 }}
             className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 flex flex-col justify-between h-full relative overflow-hidden group"
@@ -304,7 +404,7 @@ const DashboardCard = ({ title, value, icon: Icon, color, trend }: any) => {
                     </span>
                 )}
             </div>
-            
+
             <div className="relative z-10">
                 <p className="text-gray-500 text-sm font-medium mb-1">{title}</p>
                 <h4 className="text-3xl font-bold text-gray-900 tracking-tight">{value}</h4>
@@ -324,6 +424,25 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                         {payload[0].value}
                     </p>
                 </div>
+            </div>
+        );
+    }
+    return null;
+};
+
+const DistributionTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload;
+        return (
+            <div className="bg-white/95 backdrop-blur-md border border-gray-100 shadow-xl rounded-xl p-4">
+                <p className="text-xs font-bold text-gray-400 uppercase mb-2">{label} Attendance</p>
+                <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${data.status === 'Crit' ? 'bg-red-600' : data.status === 'Top' ? 'bg-green-500' : 'bg-orange-400'}`} />
+                    <span className="text-2xl font-bold text-gray-900">{data.count}</span><span className="text-sm text-gray-500 font-medium">Students</span>
+                </div>
+                <p className={`text-xs font-bold mt-2 ${data.status === 'Crit' ? 'text-red-600' : data.status === 'Top' ? 'text-green-600' : 'text-orange-500'}`}>
+                    {data.status === 'Crit' ? 'Critical Attention Needed' : data.status === 'Top' ? 'Excellent Performance' : 'Average Performance'}
+                </p>
             </div>
         );
     }
