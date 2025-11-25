@@ -4,9 +4,9 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import apiClient from '../../api/axios';
 import AddStudentModal from '../../components/teacher/AddStudentModal';
-import { 
-    MagnifyingGlassIcon, 
-    UserPlusIcon, 
+import {
+    MagnifyingGlassIcon,
+    UserPlusIcon,
     FunnelIcon,
     AcademicCapIcon,
     ChevronRightIcon,
@@ -31,7 +31,7 @@ const TeacherStudentsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    
+
     const fetchData = () => {
         setLoading(true);
         apiClient.get('/teacher/dashboard/')
@@ -73,7 +73,7 @@ const TeacherStudentsPage = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 relative overflow-hidden p-4 md:p-8">
-            
+
             {/* Background Effects */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
@@ -81,15 +81,15 @@ const TeacherStudentsPage = () => {
             </div>
 
             <div className="max-w-7xl mx-auto relative z-10">
-                
+
                 {/* --- Header & Actions --- */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Students</h1>
                         <p className="text-gray-500 mt-1">Manage enrollment and view profiles.</p>
                     </div>
-                    <button 
-                        onClick={() => setIsModalOpen(true)} 
+                    <button
+                        onClick={() => setIsModalOpen(true)}
                         className="flex items-center gap-2 bg-red-600 text-white px-5 py-2.5 rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all font-medium"
                     >
                         <UserPlusIcon className="w-5 h-5" />
@@ -99,7 +99,7 @@ const TeacherStudentsPage = () => {
 
                 {/* --- Toolbar (Glassmorphism) --- */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-8 flex flex-col md:flex-row gap-4 items-center">
-                    
+
                     {/* Subject Selector */}
                     <div className="relative w-full md:w-64 group">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -133,8 +133,8 @@ const TeacherStudentsPage = () => {
 
                 {/* --- Student Grid --- */}
                 {filteredStudents.length > 0 ? (
-                    <motion.div 
-                        layout 
+                    <motion.div
+                        layout
                         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                     >
                         <AnimatePresence>
@@ -148,16 +148,16 @@ const TeacherStudentsPage = () => {
                                 >
                                     <Link to={`/teacher/view-student/${student.roll_number}`} className="block group h-full">
                                         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:border-red-100 transition-all duration-300 h-full flex flex-col items-center text-center relative overflow-hidden">
-                                            
+
                                             {/* Hover Gradient Background */}
                                             <div className="absolute inset-0 bg-gradient-to-b from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
                                             <div className="relative mb-4">
                                                 <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-br from-gray-100 to-gray-200 group-hover:from-red-100 group-hover:to-red-200 transition-colors">
-                                                                                                       <img 
-                                                        className="w-full h-full rounded-full object-cover bg-white" 
-                                                        src={getImageUrl(student.photo) || `https://ui-avatars.com/api/?name=${student.full_name.replace(' ', '+')}&background=random`} 
-                                                        alt="" 
+                                                    <img
+                                                        className="w-full h-full rounded-full object-cover bg-white"
+                                                        src={getImageUrl(student.photo) || `https://ui-avatars.com/api/?name=${student.full_name.replace(' ', '+')}&background=random`}
+                                                        alt=""
                                                     />
 
                                                 </div>

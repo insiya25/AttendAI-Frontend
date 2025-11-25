@@ -23,6 +23,8 @@ import TeacherAttendancePage from './pages/teacher/TeacherAttendancePage';
 
 import TeacherProfilePage from './pages/teacher/TeacherProfilePage';
 
+import TeacherLiveAttendancePage from './pages/teacher/TeacherLiveAttendancePage';
+
 function App() {
   return (
     <Router>
@@ -51,6 +53,7 @@ function App() {
                 <Route path="/teacher/requests" element={<TeacherRequestsPage />} />
                 <Route path="/teacher/attendance" element={<TeacherAttendancePage />} />
                 <Route path="/teacher/profile" element={<TeacherProfilePage />} />
+                <Route path="/teacher/live-attendance" element={<TeacherLiveAttendancePage />} />
             </Route>
         </Route>
       </Routes>
