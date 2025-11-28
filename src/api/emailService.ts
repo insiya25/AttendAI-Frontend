@@ -1,10 +1,10 @@
 import emailjs from '@emailjs/browser';
 
 // REPLACE WITH YOUR ACTUAL KEYS FROM EMAILJS DASHBOARD
-const SERVICE_ID = 'service_rvbknul';
-const TEMPLATE_ID_TEACHER = 'template_qikbkai'; 
-const TEMPLATE_ID_STUDENT = 'template_qikbkai';
-const PUBLIC_KEY = 'k9Pt_WGKzhQd7nteq';
+const SERVICE_ID = 'service_krfrhip';
+const TEMPLATE_ID_TEACHER = 'template_djqk1td'; 
+const TEMPLATE_ID_STUDENT = 'template_6inpupy';
+const PUBLIC_KEY = '2B-KrIFw3fS-U5MCE';
 
 export const sendApprovalRequestEmail = async (toName: string, studentName: string, subject: string, message: string) => {
     try {

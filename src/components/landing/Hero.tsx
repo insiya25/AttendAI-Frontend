@@ -3,12 +3,12 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
 // --- Configuration ---
-// We assume you have images named 1.jpg, 2.jpg, etc. in public/carousals/
+// We assume you have images named 1.jpeg, 2.jpeg, etc. in public/carousals/
 // For this demo code, I will generate an array of filenames.
 const CAROUSEL_IMAGES = [
-  '/carousals/1.jpg', '/carousals/2.jpg', '/carousals/3.jpg',
-  '/carousals/4.jpg', '/carousals/5.jpg', '/carousals/6.jpg',
-  '/carousals/1.jpg', '/carousals/2.jpg', '/carousals/3.jpg', // Repeat for infinite loop illusion
+  '/carousals/1.jpeg', '/carousals/2.jpeg', '/carousals/3.jpeg',
+  '/carousals/4.jpeg', '/carousals/5.jpeg', '/carousals/6.jpeg',
+  '/carousals/1.jpeg', '/carousals/2.jpeg', '/carousals/3.jpeg', // Repeat for infinite loop illusion
 ];
 
 const Hero = () => {
@@ -139,7 +139,7 @@ const CarouselColumn = ({ images, speed, direction }: { images: string[], speed:
                         {/* Placeholder logic if image fails, uses a nice gradient */}
                         <div className="absolute inset-0 bg-gray-200 flex items-center justify-center">
                            {/* If you want to use real images, uncomment the img tag below and ensure paths are correct */}
-                           {/* <img src={src} alt="Attendance Sheet" className="w-full h-full object-cover" /> */}
+                           <img src={src} alt="Attendance Sheet" className="w-full h-full object-cover" />
                            
                            {/* For now, using a stylish placeholder gradient so you can see the effect immediately */}
                            <div className={`w-full h-full bg-gradient-to-br ${idx % 2 === 0 ? 'from-gray-100 to-gray-300' : 'from-red-50 to-red-100'} flex items-center justify-center text-gray-400 font-mono text-xs`}>
